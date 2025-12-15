@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  email     String    @unique
+  password  String
+  name      String
+  avatar    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  assignedTasks Task[]
+  comments      Comment[]
+  
+  projectsOwned Project[] @relation("ProjectOwner")
+  projectsMemberOf Project[] @relation("ProjectMembers", fields: [projectIds], references: [id])
+  projectIds    String[]  @db.ObjectId
+}
+
+model Project {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  description String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  ownerId   String    @db.ObjectId
+  owner     User      @relation("ProjectOwner", fields: [ownerId], references: [id])
+  
+  memberIds String[]  @db.ObjectId
+  members   User[]    @relation("ProjectMembers", fields: [memberIds], references: [id])
+  
+  columns   Column[]
+}
+
+model Column {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  order     Int
+  
+  projectId String    @db.ObjectId
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  tasks     Task[]
+}
+
+model Task {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  content   String?
+  order     Int
+  priority  String    @default("medium") // low, medium, high
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  columnId  String    @db.ObjectId
+  column    Column    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  
+  assigneeId String?  @db.ObjectId
+  assignee   User?    @relation(fields: [assigneeId], references: [id])
+  
+  comments  Comment[]
+}
+
+model Comment {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  createdAt DateTime  @default(now())
+  
+  taskId    String    @db.ObjectId
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  userId    String    @db.ObjectId
+  user      User      @relation(fields: [userId], references: [id])
+}
